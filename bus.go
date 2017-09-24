@@ -1,15 +1,21 @@
 package events
 
-import (
-	"sync"
-
-	"github.com/satori/go.uuid"
-)
+import "sync"
 
 // An event bus
 type Bus interface {
 	// Does any necessary cleanup
 	Close()
+
+	// Subscribe the given callback to all events emitted on all channels, returning
+	// the uuid for the created subscription. This uuid is needed for removing a subscription.
+	// The callback will be called after any subscribed callbacks
+	After(MiddlewareCallback)
+
+	// Subscribe the given callback to all events emitted on all channels, returning
+	// the uuid for the created subscription. This uuid is needed for removing a subscription.
+	// The callback will be called before any subscribed callbacks
+	Before(MiddlewareCallback)
 
 	// Emit the given data on the given channel
 	Emit(string, ...interface{})
@@ -24,6 +30,12 @@ type Bus interface {
 
 // The default event bus implementation
 type BusImpl struct {
+	// The "after" message callbacks
+	Afters map[string]MiddlewareCallback
+
+	// The "before" message callbacks
+	Befores map[string]MiddlewareCallback
+
 	// The identifier to channel mapping
 	Identifiers map[string]string
 
@@ -32,22 +44,67 @@ type BusImpl struct {
 
 	// The subscription channel mapping callback
 	Subscriptions map[string]map[string]Callback
-
-	// The wait group for callbacks for this bus
-	WaitGroup sync.WaitGroup
 }
 
 // Create a new bus
 func NewBus() Bus {
 	return &BusImpl{
+		Afters:        map[string]MiddlewareCallback{},
+		Befores:       map[string]MiddlewareCallback{},
 		Identifiers:   map[string]string{},
 		Subscriptions: map[string]map[string]Callback{},
 	}
 }
 
-// Does any necessary cleanup, waiting for all async callbacks to return before returning
-func (bus *BusImpl) Close() {
-	bus.WaitAsync()
+// Does any necessary cleanup
+func (bus *BusImpl) Close() {}
+
+// Subscribe the given callback to all events emitted on all channels, returning
+// the uuid for the created subscription. This uuid is needed for removing a subscription.
+// The callback will be called after any subscribed callbacks
+func (bus *BusImpl) After(callback MiddlewareCallback) {
+	bus.Mutex.Lock()
+	defer bus.Mutex.Unlock()
+
+	if bus.Afters == nil {
+		bus.Afters = map[string]MiddlewareCallback{}
+	}
+
+	var id string
+
+	for {
+		id = uuid()
+
+		if _, ok := bus.Afters[id]; !ok {
+			break
+		}
+	}
+
+	bus.Afters[id] = callback
+}
+
+// Subscribe the given callback to all events emitted on all channels, returning
+// the uuid for the created subscription. This uuid is needed for removing a subscription.
+// The callback will be called before any subscribed callbacks
+func (bus *BusImpl) Before(callback MiddlewareCallback) {
+	bus.Mutex.Lock()
+	defer bus.Mutex.Unlock()
+
+	if bus.Befores == nil {
+		bus.Befores = map[string]MiddlewareCallback{}
+	}
+
+	var id string
+
+	for {
+		id = uuid()
+
+		if _, ok := bus.Befores[id]; !ok {
+			break
+		}
+	}
+
+	bus.Befores[id] = callback
 }
 
 // Emit the given data on the given channel. Callbacks will be called on a
@@ -59,16 +116,45 @@ func (bus *BusImpl) Emit(channel string, data ...interface{}) {
 
 	callbacks, ok := bus.Subscriptions[channel]
 
-	if !ok {
-		return
+	wg := sync.WaitGroup{}
+
+	if bus.Befores != nil {
+		for _, callback := range bus.Befores {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				callback(channel, data...)
+			}()
+		}
+
+		wg.Wait()
+		wg = sync.WaitGroup{}
 	}
 
-	for _, callback := range callbacks {
-		bus.WaitGroup.Add(1)
-		go func() {
-			defer bus.WaitGroup.Done()
-			callback(data...)
-		}()
+	if ok {
+		for _, callback := range callbacks {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				callback(data...)
+			}()
+		}
+
+		wg.Wait()
+	}
+
+	if bus.Afters != nil {
+		wg = sync.WaitGroup{}
+
+		for _, callback := range bus.Afters {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				callback(channel, data...)
+			}()
+		}
+
+		wg.Wait()
 	}
 }
 
@@ -93,7 +179,7 @@ func (bus *BusImpl) On(channel string, callback Callback) string {
 	var id string
 
 	for {
-		id = uuid.NewV4().String()
+		id = uuid()
 
 		if _, ok := bus.Identifiers[id]; !ok {
 			break
@@ -131,9 +217,4 @@ func (bus *BusImpl) Remove(id string) {
 	if len(callbacks) == 0 {
 		delete(bus.Subscriptions, channel)
 	}
-}
-
-// Waits for existing callbacks to finish, then returns
-func (bus *BusImpl) WaitAsync() {
-	bus.WaitGroup.Wait()
 }

@@ -1,5 +1,6 @@
 package events
 
+// A generic event callback
 type Callback func(...interface{})
 
 // Create a callback adapter that adapts an event message to a single bool

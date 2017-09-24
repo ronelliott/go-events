@@ -69,6 +69,56 @@ func BenchmarkBus_Emit_Forty(b *testing.B) {
 	}
 }
 
+func TestBus_After(t *testing.T) {
+	bus := NewBus()
+	require.NotNil(t, bus)
+
+	calledAfter := false
+	calledRegular := false
+
+	bus.After(func(channel string, data ...interface{}) {
+		require.True(t, calledRegular)
+		calledAfter = true
+		require.Equal(t, "foo", channel)
+		require.Equal(t, []interface{}{"bar"}, data)
+	})
+
+	bus.On("foo", func(data ...interface{}) {
+		require.False(t, calledAfter)
+		calledRegular = true
+	})
+
+	bus.Emit("foo", "bar")
+
+	require.True(t, calledAfter)
+	require.True(t, calledRegular)
+}
+
+func TestBus_Before(t *testing.T) {
+	bus := NewBus()
+	require.NotNil(t, bus)
+
+	calledBefore := false
+	calledRegular := false
+
+	bus.Before(func(channel string, data ...interface{}) {
+		require.False(t, calledRegular)
+		calledBefore = true
+		require.Equal(t, "foo", channel)
+		require.Equal(t, []interface{}{"bar"}, data)
+	})
+
+	bus.On("foo", func(data ...interface{}) {
+		require.True(t, calledBefore)
+		calledRegular = true
+	})
+
+	bus.Emit("foo", "bar")
+
+	require.True(t, calledBefore)
+	require.True(t, calledRegular)
+}
+
 func TestBus_Emit_Nil(t *testing.T) {
 	bus := NewBus()
 	require.NotNil(t, bus)
@@ -90,7 +140,6 @@ func TestBus_Emit_Nil(t *testing.T) {
 	})
 
 	bus.Emit(ch1)
-	bus.(*BusImpl).WaitAsync()
 
 	require.True(t, called1)
 	require.False(t, called2)
@@ -100,7 +149,6 @@ func TestBus_Emit_Nil(t *testing.T) {
 
 	bus.Emit(ch1)
 	bus.Emit(ch2)
-	bus.(*BusImpl).WaitAsync()
 
 	require.True(t, called1)
 	require.True(t, called2)
@@ -109,7 +157,6 @@ func TestBus_Emit_Nil(t *testing.T) {
 	called2 = false
 
 	bus.Emit(ch2)
-	bus.(*BusImpl).WaitAsync()
 
 	require.False(t, called1)
 	require.True(t, called2)
@@ -136,7 +183,6 @@ func TestBus_Emit_Values(t *testing.T) {
 	})
 
 	bus.Emit(ch1, ch2)
-	bus.(*BusImpl).WaitAsync()
 
 	require.True(t, called1)
 	require.False(t, called2)
@@ -146,7 +192,6 @@ func TestBus_Emit_Values(t *testing.T) {
 
 	bus.Emit(ch1, ch2)
 	bus.Emit(ch2, ch1)
-	bus.(*BusImpl).WaitAsync()
 
 	require.True(t, called1)
 	require.True(t, called2)
@@ -155,7 +200,6 @@ func TestBus_Emit_Values(t *testing.T) {
 	called2 = false
 
 	bus.Emit(ch2, ch1)
-	bus.(*BusImpl).WaitAsync()
 
 	require.False(t, called1)
 	require.True(t, called2)

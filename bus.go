@@ -5,7 +5,7 @@ import "sync"
 // An event bus
 type Bus interface {
 	// Does any necessary cleanup
-	Close()
+	Close() error
 
 	// Subscribe the given callback to all events emitted on all channels, returning
 	// the uuid for the created subscription. This uuid is needed for removing a subscription.
@@ -57,7 +57,9 @@ func NewBus() Bus {
 }
 
 // Does any necessary cleanup
-func (bus *BusImpl) Close() {}
+func (bus *BusImpl) Close() error {
+	return nil
+}
 
 // Subscribe the given callback to all events emitted on all channels, returning
 // the uuid for the created subscription. This uuid is needed for removing a subscription.
@@ -108,8 +110,36 @@ func (bus *BusImpl) Before(callback MiddlewareCallback) {
 }
 
 // Emit the given data on the given channel. Callbacks will be called on a
-// separate goroutine.
+// separate goroutine. BROKEN, DON'T USE!
 func (bus *BusImpl) Emit(channel string, data ...interface{}) {
+	if bus.Subscriptions == nil {
+		return
+	}
+
+	if bus.Befores != nil {
+		for _, callback := range bus.Befores {
+			callback(channel, data...)
+		}
+	}
+
+	callbacks, ok := bus.Subscriptions[channel]
+
+	if ok {
+		for _, callback := range callbacks {
+			callback(data...)
+		}
+	}
+
+	if bus.Afters != nil {
+		for _, callback := range bus.Afters {
+			callback(channel, data...)
+		}
+	}
+}
+
+// Emit the given data on the given channel. Callbacks will be called on a
+// separate goroutine. BROKEN, DON'T USE!
+func (bus *BusImpl) EmitAsync(channel string, data ...interface{}) {
 	if bus.Subscriptions == nil {
 		return
 	}

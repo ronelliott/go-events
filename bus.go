@@ -110,36 +110,8 @@ func (bus *BusImpl) Before(callback MiddlewareCallback) {
 }
 
 // Emit the given data on the given channel. Callbacks will be called on a
-// separate goroutine. BROKEN, DON'T USE!
+// separate goroutine.
 func (bus *BusImpl) Emit(channel string, data ...interface{}) {
-	if bus.Subscriptions == nil {
-		return
-	}
-
-	if bus.Befores != nil {
-		for _, callback := range bus.Befores {
-			callback(channel, data...)
-		}
-	}
-
-	callbacks, ok := bus.Subscriptions[channel]
-
-	if ok {
-		for _, callback := range callbacks {
-			callback(data...)
-		}
-	}
-
-	if bus.Afters != nil {
-		for _, callback := range bus.Afters {
-			callback(channel, data...)
-		}
-	}
-}
-
-// Emit the given data on the given channel. Callbacks will be called on a
-// separate goroutine. BROKEN, DON'T USE!
-func (bus *BusImpl) EmitAsync(channel string, data ...interface{}) {
 	if bus.Subscriptions == nil {
 		return
 	}
@@ -151,10 +123,10 @@ func (bus *BusImpl) EmitAsync(channel string, data ...interface{}) {
 	if bus.Befores != nil {
 		for _, callback := range bus.Befores {
 			wg.Add(1)
-			go func() {
+			go func(cb func(string, ...interface{})) {
 				defer wg.Done()
-				callback(channel, data...)
-			}()
+				cb(channel, data...)
+			}(callback)
 		}
 
 		wg.Wait()
@@ -164,10 +136,10 @@ func (bus *BusImpl) EmitAsync(channel string, data ...interface{}) {
 	if ok {
 		for _, callback := range callbacks {
 			wg.Add(1)
-			go func() {
+			go func(cb func(...interface{})) {
 				defer wg.Done()
-				callback(data...)
-			}()
+				cb(data...)
+			}(callback)
 		}
 
 		wg.Wait()
@@ -178,10 +150,10 @@ func (bus *BusImpl) EmitAsync(channel string, data ...interface{}) {
 
 		for _, callback := range bus.Afters {
 			wg.Add(1)
-			go func() {
+			go func(cb func(string, ...interface{})) {
 				defer wg.Done()
-				callback(channel, data...)
-			}()
+				cb(channel, data...)
+			}(callback)
 		}
 
 		wg.Wait()

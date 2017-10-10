@@ -6,67 +6,41 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func BenchmarkBus_Emit_One(b *testing.B) {
+func doBusEmitBenchmark(b *testing.B, total int) {
 	bus := NewBus()
 
 	ch := "channel"
-	bus.On(ch, func(...interface{}) {})
+	for i := 0; i < total; i++ {
+		bus.On(ch, func(...interface{}) {})
+	}
 
 	for n := 0; n < b.N; n++ {
 		bus.Emit(ch, nil)
 	}
+}
+
+func BenchmarkBus_Emit_One(b *testing.B) {
+	doBusEmitBenchmark(b, 1)
 }
 
 func BenchmarkBus_Emit_Ten(b *testing.B) {
-	bus := NewBus()
-
-	ch := "channel"
-	for i := 0; i < 10; i++ {
-		bus.On(ch, func(...interface{}) {})
-	}
-
-	for n := 0; n < b.N; n++ {
-		bus.Emit(ch, nil)
-	}
+	doBusEmitBenchmark(b, 10)
 }
 
 func BenchmarkBus_Emit_Twenty(b *testing.B) {
-	bus := NewBus()
-
-	ch := "channel"
-	for i := 0; i < 20; i++ {
-		bus.On(ch, func(...interface{}) {})
-	}
-
-	for n := 0; n < b.N; n++ {
-		bus.Emit(ch, nil)
-	}
+	doBusEmitBenchmark(b, 20)
 }
 
 func BenchmarkBus_Emit_Thirty(b *testing.B) {
-	bus := NewBus()
-
-	ch := "channel"
-	for i := 0; i < 30; i++ {
-		bus.On(ch, func(...interface{}) {})
-	}
-
-	for n := 0; n < b.N; n++ {
-		bus.Emit(ch, nil)
-	}
+	doBusEmitBenchmark(b, 30)
 }
 
 func BenchmarkBus_Emit_Forty(b *testing.B) {
-	bus := NewBus()
+	doBusEmitBenchmark(b, 40)
+}
 
-	ch := "channel"
-	for i := 0; i < 40; i++ {
-		bus.On(ch, func(...interface{}) {})
-	}
-
-	for n := 0; n < b.N; n++ {
-		bus.Emit(ch, nil)
-	}
+func BenchmarkBus_Emit_OneHundred(b *testing.B) {
+	doBusEmitBenchmark(b, 100)
 }
 
 func TestBus_After(t *testing.T) {

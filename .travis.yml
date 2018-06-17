@@ -2,8 +2,10 @@ language: go
 go:
   - 1.10
 install:
-  - go get github.com/Masterminds/glide
-  - (cd src/github.com/ronelliott/go-events && ../../../../bin/glade install)
+  - add-apt-repository ppa:masterminds/glide
+  - apt-get update
+  - apt-get install -y glide
+  - (cd src/github.com/ronelliott/go-events && glade install)
   - go get github.com/mattn/goveralls
 script:
   - go test -covermode=count -coverprofile=coverage.out -v github.com/ronelliott/go-events

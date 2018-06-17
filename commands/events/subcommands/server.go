@@ -1,7 +1,7 @@
 package subcommands
 
 import (
-	log "github.com/sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 
 	"github.com/ronelliott/go-events"
 )

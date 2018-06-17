@@ -73,14 +73,9 @@ func (bus *BusImpl) After(callback MiddlewareCallback) {
 	}
 
 	var id string
-	var err error
 
 	for {
-		id, err = uuid()
-
-		if err != nil {
-			panic(err)
-		}
+		id = uuid()
 
 		if _, ok := bus.Afters[id]; !ok {
 			break
@@ -102,14 +97,9 @@ func (bus *BusImpl) Before(callback MiddlewareCallback) {
 	}
 
 	var id string
-	var err error
 
 	for {
-		id, err = uuid()
-
-		if err != nil {
-			panic(err)
-		}
+		id = uuid()
 
 		if _, ok := bus.Befores[id]; !ok {
 			break
@@ -189,14 +179,9 @@ func (bus *BusImpl) On(channel string, callback Callback) string {
 	}
 
 	var id string
-	var err error
 
 	for {
-		id, err = uuid()
-
-		if err != nil {
-			panic(err)
-		}
+		id = uuid()
 
 		if _, ok := bus.Identifiers[id]; !ok {
 			break

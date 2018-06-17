@@ -31,3 +31,6 @@ func main() {
     bus.Emit("something-awesome", "foo", "bar")
 }
 ```
+
+### Server:
+  *Server is a WIP*

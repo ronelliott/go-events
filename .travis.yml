@@ -2,8 +2,8 @@ language: go
 go:
   - 1.10
 install:
-  - curl https://glide.sh/get | sh
-  - (cd src/github.com/ronelliott/go-events && glade install)
+  - go get github.com/Masterminds/glide
+  - (cd src/github.com/ronelliott/go-events && ../../../../bin/glade install)
   - go get github.com/mattn/goveralls
 script:
   - go test -covermode=count -coverprofile=coverage.out -v github.com/ronelliott/go-events

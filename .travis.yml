@@ -2,9 +2,9 @@ language: go
 go:
   - 1.10
 install:
-  - add-apt-repository ppa:masterminds/glide
-  - apt-get update
-  - apt-get install -y glide
+  - sudo add-apt-repository ppa:masterminds/glide
+  - sudo apt-get update
+  - sudo apt-get install -y glide
   - (cd src/github.com/ronelliott/go-events && glade install)
   - go get github.com/mattn/goveralls
 script:

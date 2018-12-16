@@ -10,19 +10,19 @@ type Bus interface {
 	// Subscribe the given callback to all events emitted on all channels, returning
 	// the uuid for the created subscription. This uuid is needed for removing a subscription.
 	// The callback will be called after any subscribed callbacks
-	After(MiddlewareCallback)
+	After(MiddlewareCallback) error
 
 	// Subscribe the given callback to all events emitted on all channels, returning
 	// the uuid for the created subscription. This uuid is needed for removing a subscription.
 	// The callback will be called before any subscribed callbacks
-	Before(MiddlewareCallback)
+	Before(MiddlewareCallback) error
 
 	// Emit the given data on the given channel
 	Emit(string, ...interface{})
 
 	// Subscribe the given callback to events emitted on the given channel, returning
 	// the uuid for the created subscription. This uuid is needed for removing a subscription
-	On(string, Callback) string
+	On(string, Callback) (string, error)
 
 	// Remove a subscription with the given id
 	Remove(string)
@@ -64,7 +64,7 @@ func (bus *BusImpl) Close() error {
 // Subscribe the given callback to all events emitted on all channels, returning
 // the uuid for the created subscription. This uuid is needed for removing a subscription.
 // The callback will be called after any subscribed callbacks
-func (bus *BusImpl) After(callback MiddlewareCallback) {
+func (bus *BusImpl) After(callback MiddlewareCallback) error {
 	bus.Mutex.Lock()
 	defer bus.Mutex.Unlock()
 
@@ -75,7 +75,11 @@ func (bus *BusImpl) After(callback MiddlewareCallback) {
 	var id string
 
 	for {
-		id = uuid()
+		id, err := uuid()
+
+		if err != nil {
+			return err
+		}
 
 		if _, ok := bus.Afters[id]; !ok {
 			break
@@ -83,12 +87,13 @@ func (bus *BusImpl) After(callback MiddlewareCallback) {
 	}
 
 	bus.Afters[id] = callback
+	return nil
 }
 
 // Subscribe the given callback to all events emitted on all channels, returning
 // the uuid for the created subscription. This uuid is needed for removing a subscription.
 // The callback will be called before any subscribed callbacks
-func (bus *BusImpl) Before(callback MiddlewareCallback) {
+func (bus *BusImpl) Before(callback MiddlewareCallback) error {
 	bus.Mutex.Lock()
 	defer bus.Mutex.Unlock()
 
@@ -99,7 +104,11 @@ func (bus *BusImpl) Before(callback MiddlewareCallback) {
 	var id string
 
 	for {
-		id = uuid()
+		id, err := uuid()
+
+		if err != nil {
+			return err
+		}
 
 		if _, ok := bus.Befores[id]; !ok {
 			break
@@ -107,6 +116,7 @@ func (bus *BusImpl) Before(callback MiddlewareCallback) {
 	}
 
 	bus.Befores[id] = callback
+	return nil
 }
 
 // Emit the given data on the given channel. Callbacks will be called on a
@@ -162,7 +172,7 @@ func (bus *BusImpl) Emit(channel string, data ...interface{}) {
 
 // Subscribe the given callback to events emitted on the given channel, returning
 // the uuid for the created subscription. This uuid is needed for removing a subscription
-func (bus *BusImpl) On(channel string, callback Callback) string {
+func (bus *BusImpl) On(channel string, callback Callback) (string, error) {
 	bus.Mutex.Lock()
 	defer bus.Mutex.Unlock()
 
@@ -181,7 +191,11 @@ func (bus *BusImpl) On(channel string, callback Callback) string {
 	var id string
 
 	for {
-		id = uuid()
+		id, err := uuid()
+
+		if err != nil {
+			return "", err
+		}
 
 		if _, ok := bus.Identifiers[id]; !ok {
 			break
@@ -190,7 +204,7 @@ func (bus *BusImpl) On(channel string, callback Callback) string {
 
 	bus.Identifiers[id] = channel
 	bus.Subscriptions[channel][id] = callback
-	return id
+	return id, nil
 }
 
 // Remove a subscription with the given id

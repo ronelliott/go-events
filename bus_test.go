@@ -50,17 +50,21 @@ func TestBus_After(t *testing.T) {
 	calledAfter := false
 	calledRegular := false
 
-	bus.After(func(channel string, data ...interface{}) {
+	err := bus.After(func(channel string, data ...interface{}) {
 		require.True(t, calledRegular)
 		calledAfter = true
 		require.Equal(t, "foo", channel)
 		require.Equal(t, []interface{}{"bar"}, data)
 	})
 
-	bus.On("foo", func(data ...interface{}) {
+	require.Nil(t, err)
+
+	_, err = bus.On("foo", func(data ...interface{}) {
 		require.False(t, calledAfter)
 		calledRegular = true
 	})
+
+	require.Nil(t, err)
 
 	bus.Emit("foo", "bar")
 
@@ -75,17 +79,21 @@ func TestBus_Before(t *testing.T) {
 	calledBefore := false
 	calledRegular := false
 
-	bus.Before(func(channel string, data ...interface{}) {
+	err := bus.Before(func(channel string, data ...interface{}) {
 		require.False(t, calledRegular)
 		calledBefore = true
 		require.Equal(t, "foo", channel)
 		require.Equal(t, []interface{}{"bar"}, data)
 	})
 
-	bus.On("foo", func(data ...interface{}) {
+	require.Nil(t, err)
+
+	_, err = bus.On("foo", func(data ...interface{}) {
 		require.True(t, calledBefore)
 		calledRegular = true
 	})
+
+	require.Nil(t, err)
 
 	bus.Emit("foo", "bar")
 
@@ -103,15 +111,19 @@ func TestBus_Emit_Nil(t *testing.T) {
 	ch1 := "channel-1"
 	ch2 := "channel-2"
 
-	bus.On(ch1, func(data ...interface{}) {
+	_, err := bus.On(ch1, func(data ...interface{}) {
 		require.Nil(t, data)
 		called1 = true
 	})
 
-	bus.On(ch2, func(data ...interface{}) {
+	require.Nil(t, err)
+
+	_, err = bus.On(ch2, func(data ...interface{}) {
 		require.Nil(t, data)
 		called2 = true
 	})
+
+	require.Nil(t, err)
 
 	bus.Emit(ch1)
 
@@ -146,15 +158,19 @@ func TestBus_Emit_Values(t *testing.T) {
 	ch1 := "channel-1"
 	ch2 := "channel-2"
 
-	bus.On(ch1, func(data ...interface{}) {
+	_, err := bus.On(ch1, func(data ...interface{}) {
 		require.Equal(t, []interface{}{ch2}, data)
 		called1 = true
 	})
 
-	bus.On(ch2, func(data ...interface{}) {
+	require.Nil(t, err)
+
+	_, err = bus.On(ch2, func(data ...interface{}) {
 		require.Equal(t, []interface{}{ch1}, data)
 		called2 = true
 	})
+
+	require.Nil(t, err)
 
 	bus.Emit(ch1, ch2)
 
@@ -182,7 +198,8 @@ func TestBus_Emit_Values(t *testing.T) {
 func TestBus_Remove(t *testing.T) {
 	bus := NewBus()
 	require.NotNil(t, bus)
-	id := bus.On("ch", func(...interface{}) {})
+	id, err := bus.On("ch", func(...interface{}) {})
+	require.Nil(t, err)
 	require.Equal(t, 1, len(bus.(*BusImpl).Subscriptions))
 	bus.Remove(id)
 	require.Equal(t, 0, len(bus.(*BusImpl).Subscriptions))
